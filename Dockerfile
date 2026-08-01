@@ -6,14 +6,14 @@ RUN apt-get update && apt-get install -y \
     gcc \
     && rm -rf /var/lib/apt/lists/*
 
-# Set the working directory inside the container
+FROM --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
 WORKDIR /app
 
-# Copy your dependency manifest first to take advantage of Docker layer caching
-COPY requirements.txt* /app/
+COPY pyproject.toml uv.lock /app/
 
-# Install dependencies if requirements.txt exists
-RUN if [ -f "requirements.txt" ]; then pip install --no-cache-dir -r requirements.txt; fi
+RUN uv sync --frozen --no-cache
 
-# (Optional) If you don't use -v mounting, uncomment the line below to hard-copy code into the image:
-# COPY . /app
+ENV PATH="/app/.venv/bin:$PATH"
+
+COPY . /app

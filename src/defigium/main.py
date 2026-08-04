@@ -1,16 +1,17 @@
+import argparse
 import os
 from src.config_loader import load_config
 from src.parsers.factory import ParserFactory
 from src.generators.factory import GeneratorFactory
 
-def run_python_pipeline():
+def run_python_pipeline(config_path):
     """
     Orchestrates the parsing and generation stages in-memory.
     Runs the generation multiple times to ensure statistical robustness.
     """
     print("\n--- STARTING WORKLOAD GENERATION PIPELINE (MULTI-RUN MODE) ---")
 
-    config = load_config('config.yaml')
+    config = load_config(config_path)
     pipeline_config = config.get('pipeline', {})
     components_config = config.get('components', {})
     parser_config = components_config.get('parser', {})
@@ -24,7 +25,7 @@ def run_python_pipeline():
 
     if not all([input_log_file, output_log_base]):
         raise KeyError(
-            "'input_log_file' or 'generator_log_file' not found in config.yaml"
+           f"'input_log_file' or 'generator_log_file' not found in {config_path}"
         )
 
     print(f"Parsing '{input_log_file}' into memory (Single Pass)...")
@@ -59,4 +60,14 @@ def run_python_pipeline():
     print(f"\nPipeline completed. {NUM_RUNS} synthetic logs generated.")
 
 if __name__ == "__main__":
-    run_python_pipeline()
+	parser = argparse.ArgumentParser(description="Run Python trace workload generation pipeline.")
+	parser.add_argument(
+		"--config",
+		type=str,
+		default="config.yaml",
+		help="Path to the configuration YAML file (default: config.yaml)"
+	)
+
+	args = parser.parse_args()
+	
+    run_python_pipeline(args.config)

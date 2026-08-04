@@ -1,8 +1,8 @@
 #include "ThreadPool.h"
 #include "factory.h"
 
-ThreadPool::ThreadPool(size_t num_workers, const YAML::Node& executor_config)
-	: m_num_workers(num_workers), m_executor_config(executor_config)
+ThreadPool::ThreadPool(size_t num_workers, const YAML::Node& target_config)
+	: m_num_workers(num_workers), m_target_config(target_config)
 {
 	m_workers.reserve(num_workers);
 	for (size_t i = 0; i < num_workers; ++i)
@@ -34,8 +34,8 @@ void ThreadPool::worker_function(int id) {
 	std::unique_ptr<IExecutorStrategy> executor = nullptr;
 
     try {
-        executor = ExecutorFactory::create(m_executor_config["type"].as<std::string>());
-        executor->connect(m_executor_config);
+        executor = ExecutorFactory::create(m_target_config["type"].as<std::string>());
+        executor->connect(m_target_config);
 
         while (true) {
             Task_Worker task = m_queue.pop();

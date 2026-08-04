@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-server
+spec:
+  replicas: 1
+    selector:
+      matchLabels:
+        app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      hostNetwork: true
+      containers:
+      - name: redis
+        image: redis:alpine
+		command: ["redis-server", "--port", "7000", "--bind", "0.0.0.0", "protected-mode", "no"]		

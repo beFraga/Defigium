@@ -11,17 +11,26 @@
 #include <string>
 #include <yaml-cpp/yaml.h>
 #include <atomic>
+#include <algorithm>
 
-int main() {
+int main(int argc, char* argv[]) {
+	std::string config_path = "config.yaml";
+
+	for (int i = 1; i < argc; ++i) {
+		std::string arg = argv[i];
+		if (arg == "--config" && i + 1 < argc)
+			config_path = argv[++i];
+	}
     YAML::Node config;
     try {
-        config = YAML::LoadFile("config.yaml");
+        config = YAML::LoadFile(config_path);
     } catch (const std::exception& e) {
-        std::cerr << "Error loading config.yaml: " << e.what() << std::endl;
+        std::cerr << "Error loading configuration file (" << config_path << "): " << e.what() << std::endl;
         return 1;
     }
 
     const auto& pipeline_config = config["pipeline"];
+	const auto& target_config	= config["target"];
     const auto& executor_config = config["components"]["executor"];
 
     const std::string input_log_path = pipeline_config["generator_log_file"].as<std::string>();
@@ -32,7 +41,7 @@ int main() {
         return 1;
     }
 
-    auto command_parser = ExecutorFactory::create(executor_config["type"].as<std::string>());
+    auto command_parser = ExecutorFactory::create(target_config["type"].as<std::string>());
 
     std::cout << "Parsing events from synthetic log file into memory..." << std::endl;
     std::vector<Task> all_tasks;
@@ -59,7 +68,7 @@ int main() {
     double trace_start_timestamp = all_tasks[0].original_timestamp;
 
     const int num_workers = executor_config["max_workers"].as<int>();
-	ThreadPool pool(num_workers, executor_config);
+	ThreadPool pool(num_workers, target_config);
 
 	std::vector<Task_Worker> benchmark_set;
 

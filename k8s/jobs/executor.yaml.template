@@ -1,0 +1,35 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: benchmark-executor-job
+spec:
+  parallelism: ${PARALLELISM}
+  completions: ${PARALLELISM}
+  template:
+    metadata:
+	  labels:
+	    app: benchmark-runner
+	spec:
+	  hostNetwork: true
+	  restartPolicy: Never
+
+	  volumes:
+	  - name: logs-dir
+	    hostPath:
+		  path: /tmp/logs/
+		  type: DirectoryOrCreate
+	  - name: config-volume
+	    configMap:
+		  name: app-config
+      
+      containers:
+	  - name: cpp-executor
+	    image: cpp-executor:latest
+		imagePullPolicy: Never
+		command: ["/app/entrypoint.sh", "--config", "/app/config.yaml"]
+		volumeMounts:
+		- name: logs-dir
+		  mountPath: /app/logs
+		- name: config-volume
+		  mountPath: /app/config.yaml
+		  subPath: config.yaml

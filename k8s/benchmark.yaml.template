@@ -1,0 +1,47 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: benchmark-execution-job
+spec:
+  parallelism: ${PARALLELISM}
+  completions: ${PARALLELISM}
+  template:
+    metadata:
+	  labels:
+	    app: benchmark-runner
+	spec:
+	  hostNetwork: true
+	  restartPolicy: Never
+
+	  volumes:
+	  - name: logs-dir
+	    hostPath:
+		  path: /tmp/logs/
+		  type: DirectoryOrCreate
+	  - name: config-volume
+	    configMap:
+		  name: app-config
+      
+	  initContainers:
+	  - name: trace-generator
+	    image: defigium-python:latest
+		imagePullPolicy: Never
+		command: ["python", "src/defigium/main.py", "--config", "/app/config.yaml"]
+		volumeMounts:
+		- name: logs-dir
+		  mountPath: /app/logs
+		- name: config-volume
+		  mountPath: /app/config.yaml
+		  subPath: config.yaml
+	
+      containers:
+	  - name: cpp-executor
+	    image: cpp-executor:latest
+		imagePullPolicy: Never
+		command: ["./executors/main", "-config", "/app/config.yaml"]
+		volumeMounts:
+		- name: logs-dir
+		  mountPath: /app/logs
+		- name: config-volume
+		  mountPath: /app/config.yaml
+		  subPath: config.yaml

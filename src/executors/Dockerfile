@@ -8,6 +8,7 @@ RUN apt-get update && apt-get install -y \
 	git \
 	libyaml-cpp-dev \
 	libhiredis-dev \
+	libcurl4-openssl-dev \
 	&& rm -rf /var/lib/apt/lists/*
 
 WORKDIR /tmp
@@ -22,7 +23,8 @@ WORKDIR /app
 
 COPY . .
 
-RUN make redis
+RUN make redis && mv executor executor_redis && make clean
+RUN make http && mv executor executor_http && make clean
 
 FROM ubuntu:22.04 AS runtime
 
@@ -31,11 +33,19 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
 	libyaml-cpp0.7 \
 	libhiredis0.14 \
+	libcurl4 \
+	python3 \
+	python3-yaml \
 	&& rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /usr/local/lib/libredis++.so* /usr/local/lib/
 RUN ldconfig
 
-COPY --from=builder /app/executor /app/executor
+COPY --from=builder /app/executor_redis /app/executor_redis
+COPY --from=builder /app/executor_http /app/executor_http
 
-ENTRYPOINT ["./executor"]
+RUN printf '#!/bin/sh\n\
+TYPE=$(python3 -c "import yaml; print(yaml.safe_load(open(\"/app/config.yaml\")[\"target\"][\"type\"]")\n\
+exec /app/executor_${TYPE} "$@"\n' > /app/entrypoint.sh && chmod +x /app/entrypoint.sh
+
+ENTRYPOINT ["/app/entrypoint.sh"]

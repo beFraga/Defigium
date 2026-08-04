@@ -49,7 +49,7 @@ private:
 
 class ThreadPool {
 public:
-	ThreadPool(size_t num_workers, const YAML::Node& executor_config);
+	ThreadPool(size_t num_workers, const YAML::Node& target_config);
 	~ThreadPool();
 
 	void enqueue_task(Task_Worker task);
@@ -63,7 +63,7 @@ private:
 	void worker_function(int id);
 	
 	size_t m_num_workers;
-	const YAML::Node& m_executor_config;
+	const YAML::Node& m_target_config;
 
 	ThreadSafeQueue<Task_Worker> m_queue;
 	std::vector<std::thread> m_workers;

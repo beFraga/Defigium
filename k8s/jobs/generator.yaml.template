@@ -1,0 +1,35 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: benchmark-generator-job
+spec:
+  parallelism: 1
+  completions: 1
+  template:
+    metadata:
+	  labels:
+	    app: benchmark-generator
+	spec:
+	  hostNetwork: true
+	  restartPolicy: Never
+
+	  volumes:
+	  - name: logs-dir
+	    hostPath:
+		  path: /tmp/logs/
+		  type: DirectoryOrCreate
+	  - name: config-volume
+	    configMap:
+		  name: app-config
+      
+	  containers:
+	  - name: trace-generator
+	    image: defigium-python:latest
+		imagePullPolicy: Never
+		command: ["python", "src/defigium/main.py", "--config", "/app/config.yaml"]
+		volumeMounts:
+		- name: logs-dir
+		  mountPath: /app/logs
+		- name: config-volume
+		  mountPath: /app/config.yaml
+		  subPath: config.yaml

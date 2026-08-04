@@ -1,4 +1,18 @@
 # config.yaml
+
+cluster:
+  master_ip: "node0"
+  master_ssh: ""
+
+  target_ssh: ""
+  worker_ssh:
+  - ""
+
+target:
+  type: "redis"
+  host: "node1"
+  port: 7000
+
 pipeline:
   # Input for the Python pipeline
   input_log_file: "logs/ycsb_output.log"
@@ -6,20 +20,15 @@ pipeline:
   generator_log_file: "logs/output/test8/synthetic_trace_18.log"
   debug_model_output_file: "logs/output/characterization_model.json"
 
-
 components:
   parser:
-    type: "redis"
     timestamp_granularity: 6
 
   generator:
     type: "heatmap"
     percentage_interval: 1
     simulation_duration_s: 1
-    time_expansion_strategy: "stretch"  # Can be either cyclic or stretch
+    time_expansion_strategy: "stretch"  # cyclic, stretch
 
   executor:
-    type: "redis"
-    host: "node1"
-    port: 7000
-    max_workers: 10
+    max_workers: 16

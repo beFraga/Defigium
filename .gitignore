@@ -3,3 +3,4 @@ __pycache__
 logs/*
 !logs/.gitkeep
 ycsb_results
+install_docker.sh

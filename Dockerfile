@@ -17,3 +17,7 @@ RUN uv sync --frozen --no-cache
 ENV PATH="/app/.venv/bin:$PATH"
 
 COPY . /app
+
+RUN uv pip install --no-deps -e .
+
+CMD ["python", "src/defigium/main.py"]

@@ -3,32 +3,24 @@
 #include <string>
 #include <cstdlib>
 #include <fstream>
-
-class TeeBuffer : public std::streambuf {
-	public:
-		TeeBuffer(std::streambuf * sb1, std::streambuf * sb2) : sb1(sb1), sb2(sb2) {}
-	protected:
-		virtual int overflow(int c) override {
-			if (c == EOF) return EOF;
-			bool err = (sb1->sputc(c) == EOF) || (sb2->sputc(c) == EOF);
-			return err ? EOF : c;
-		}
-		virtual int sync() override {
-			return (sb1->pubsync() == 0 && sb2->pubsync() == 0) ? 0 : -1;
-		}
-	private:
-		std::streambuf * sb1;
-		std::streambuf * sb2;
-};
+#include <ext/stdio_filebuf.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 int main(int argc, char* argv[]) {
-	std::ofstream log_file("out.log");
+	int log_fd = open("out.log", O_WRONLY | O_CREAT | O_TRUNC, 0644);
+	if (log_fd < 0) {
+		std::cerr << "[Daemon] Critical Error: could not open out.log" << std::endl;
+		return EXIT_FAILURE;
+	}
+
+	__gnu_cxx::stdio_filebuf<char> log_filebuf(log_fd, std::ios::out);
+	std::ostream log_file(&log_filebuf);
+
 	std::streambuf * _cout = std::cout.rdbuf();
 	std::streambuf * _cerr = std::cerr.rdbuf();
-	TeeBuffer cout_tee(_cout, log_file.rdbuf());
-	TeeBuffer cerr_tee(_cerr, log_file.rdbuf());
-	std::cout.rdbuf(&cout_tee);
-	std::cerr.rdbuf(&cerr_tee);
+	std::cout.rdbuf(log_file.rdbuf());
+	std::cerr.rdbuf(log_file.rdbuf());
 
 	if (argc < 2) {
 		std::cerr << "Usage: " << argv[0] << " <port_number>" << std::endl;
@@ -58,7 +50,7 @@ int main(int argc, char* argv[]) {
 
     std::cout << "[Daemon] Starting daemon on port " << port << "..." << std::endl;
 
-    Daemon daemon(port);
+    Daemon daemon(port, log_fd);
     daemon.run();
 
 	std::cout.rdbuf(_cout);

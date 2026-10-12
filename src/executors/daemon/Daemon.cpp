@@ -22,7 +22,7 @@ bool is_safe_token(const std::string& s, const std::string& extra_allowed) {
 	return true;
 }
 
-Daemon::Daemon(int port) : daemon_port(port), worker_pid(-1) {
+Daemon::Daemon(int port, int log_fd) : daemon_port(port), log_fd(log_fd), worker_pid(-1) {
 	server_fd = socket(AF_INET, SOCK_STREAM, 0);
 	if (server_fd < 0) {
 		printerr("Critical Error: Socket creation failed.");
@@ -197,6 +197,12 @@ void Daemon::spawn_worker(int client_sock, int port, int reserved_fd, const std:
     if (pid == 0) {
 		// Child: close reserved_fd before exec so the worker can bind the port
 		if (reserved_fd >= 0) close(reserved_fd);
+
+		if (log_fd >= 0) {
+			dup2(log_fd, STDOUT_FILENO);
+			dup2(log_fd, STDERR_FILENO);
+			close(log_fd);
+		}
 
 		std::ostringstream cmd;
 		cmd << "exec " << build_dir << "/worker "

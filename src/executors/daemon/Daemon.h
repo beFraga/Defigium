@@ -7,7 +7,7 @@
 
 class Daemon {
 	public:
-		Daemon(int port);
+		Daemon(int port, int log_fd);
 		~Daemon();
 
 		void run();
@@ -15,6 +15,7 @@ class Daemon {
 	private:
 		int server_fd;
 		int daemon_port;
+		int log_fd;
 
 		pid_t worker_pid;
 

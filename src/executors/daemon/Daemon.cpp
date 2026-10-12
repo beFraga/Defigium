@@ -11,6 +11,8 @@
 #include <cstdlib>
 #include <cctype>
 #include <fstream>
+#include <sys/file.h>
+#include <fcntl.h>
 
 bool is_safe_token(const std::string& s, const std::string& extra_allowed) {
 	if (s.empty()) return false;
@@ -61,7 +63,6 @@ void Daemon::run() {
 
 		print("Master connected. Awaiting commands...");
 		std::thread(&Daemon::handle_client, this, client_sock).detach();
-
 	}
 }
 
@@ -141,6 +142,30 @@ void Daemon::spawn_worker(int client_sock, int port, int reserved_fd, const std:
 		}
 	}
 
+	int lock_fd = -1;
+	if (need_rebuild) {
+		std::string lock_path = build_dir + "/.build.lock";
+		lock_fd = open(lock_path.c_str(), O_CREAT | O_RDWR, 0644);
+		if (lock_fd < 0) {
+			printerr("Critical Error: Could not open build lock file.");
+			return;
+		}
+
+		print("Waiting for build lock on " + lock_path + "...");
+		if (flock(lock_fd, LOCK_EX) < 0) {
+			printerr("Critical Error: Could not acquire build lock.");
+			close(lock_fd);
+			return;
+		}
+
+		std::ifstream file(state_file);
+		if (file.is_open()) {
+			std::string saved_type;
+			std::getline(file, saved_type);
+			if (saved_type == type) need_rebuild = false;
+		}
+	}
+
 	if (need_rebuild) {
 		std::ostringstream cmd_build;
 		print("Type changed or build missing. Rebuilding worker for type: " + type);
@@ -155,6 +180,11 @@ void Daemon::spawn_worker(int client_sock, int port, int reserved_fd, const std:
 			return;
 		}
 		print("Worker build completed successfully.");
+	}
+
+	if (lock_fd >= 0) {
+		flock(lock_fd, LOCK_UN);
+		close(lock_fd);
 	}
 
     pid_t pid = fork();

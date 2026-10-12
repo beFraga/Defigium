@@ -1,7 +1,7 @@
 import os
-from src.config_loader import load_config
-from src.parsers.factory import ParserFactory
-from src.generators.factory import GeneratorFactory
+from defigium.config_loader import load_config
+from defigium.parsers.factory import ParserFactory
+from defigium.generators.factory import GeneratorFactory
 
 def run_python_pipeline():
     """
@@ -10,14 +10,21 @@ def run_python_pipeline():
     """
     print("\n--- STARTING WORKLOAD GENERATION PIPELINE (MULTI-RUN MODE) ---")
 
-    config = load_config('config.yaml')
-    pipeline_config = config.get('pipeline', {})
+    config            = load_config('config.yaml')
+    pipeline_config   = config.get('pipeline', {})
+    target_config     = config.get('target', {})
     components_config = config.get('components', {})
-    parser_config = components_config.get('parser', {})
-    generator_config = components_config.get('generator', {})
+    parser_config     = components_config.get('parser', {})
+    generator_config  = components_config.get('generator', {})
+
+    parser_type = target_config.get('type')
+    if not parser_type:
+        raise KeyError(
+            "'target/type' not found in config.yaml"
+        )
 
     parser_factory = ParserFactory()
-    parser = parser_factory.create_parser(parser_config)
+    parser = parser_factory.create_parser(parser_config, parser_type)
 
     input_log_file = pipeline_config.get('input_log_file')
     output_log_base = pipeline_config.get('generator_log_file')
@@ -32,8 +39,9 @@ def run_python_pipeline():
     loaded_events = list(event_iterator)
     print(f"Parsing complete. {len(loaded_events)} events loaded into memory.")
 
-    NUM_RUNS = 30
+    NUM_RUNS = pipeline_config.get('num_runs', 30)
 
+    os.makedirs(os.path.dirname(os.path.abspath(output_log_base)), exist_ok=True)    
     filename, ext = os.path.splitext(output_log_base)
 
     print(f"\nStarting {NUM_RUNS} generation rounds for statistical robustness...")

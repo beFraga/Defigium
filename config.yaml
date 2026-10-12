@@ -1,25 +1,229 @@
-# config.yaml
-pipeline:
-  # Input for the Python pipeline
-  input_log_file: "logs/ycsb_output.log"
-  # Output of the Python pipeline, Input for the C++ executor
-  generator_log_file: "logs/output/test8/synthetic_trace_18.log"
-  debug_model_output_file: "logs/output/characterization_model.json"
+# =============================================================================
+# Defigium - Benchmark Configuration
+# =============================================================================
+#
+# HOW TO USE
+# ----------
+# 1. Set `active_benchmark` to the name of one of the entries in `benchmarks`.
+# 2. Each benchmark entry can fully override any default under `defaults`.
+# 3. Fields not overridden in a benchmark fall back to `defaults`.
+# 4. Run: python main.py
+#
+# KEY KNOBS PER BENCHMARK
+# -----------------------
+#   target.type        : application under test  ("redis" | "v2i" | "http")
+#   cluster.workers    : list of worker daemons as [ip, port] pairs
+#   pipeline.num_runs  : how many synthetic log files to generate
+#   components.executor.num_threads : concurrent threads for the C++ executor
+#   components.generator.type       : trace synthesis strategy ("heatmap" | "replay")
+#   components.generator.time_expansion_strategy : ("cyclic" | "stretch")
+# =============================================================================
 
 
-components:
-  parser:
-    type: "redis"
-    timestamp_granularity: 6
+# -- Active benchmark ----------------------------------------------------------
+# Single benchmark to run when benchmark_sequence is empty.
+active_benchmark: "redis_local_light"
 
-  generator:
-    type: "heatmap"
-    percentage_interval: 1
-    simulation_duration_s: 1
-    time_expansion_strategy: "stretch"  # Can be either cyclic or stretch
+# -- Benchmark sequence --------------------------------------------------------
+# List of benchmarks the master will run back-to-back in order.
+# When non-empty this takes priority over active_benchmark.
+# Leave empty ([]) to fall back to active_benchmark.
+benchmark_sequence:
+  - "redis_local_light"
+  - "redis_local_stress"
 
-  executor:
-    type: "redis"
-    host: "node1"
-    port: 7000
-    max_workers: 10
+
+# -- Defaults (baseline used by every benchmark unless overridden) -------------
+defaults:
+
+  binary_dir: "/tmp/Defigium"
+
+  cluster:
+    # Worker daemons: each entry is [ip, port]
+    workers:
+      - ["localhost", 6767]
+      - ["localhost", 6768]
+      - ["localhost", 6769]
+      - ["localhost", 6770]
+
+    # Target application being benchmarked
+    target:
+      type: "redis"
+      host: "localhost"
+      port: 7000
+
+  pipeline:
+    input_log_file:       "logs/SmartData.txt"
+    generator_log_file:   "logs/output/test/synthetic_trace.log"
+    executor_log_file:    1          # index of the synthetic log file to replay
+    debug_model_output_file: "logs/output/characterization_model.json"
+    num_runs: 30          # number of synthetic log files generated per run
+
+  components:
+    parser:
+      timestamp_granularity: 6
+
+    generator:
+      type: "heatmap"
+      percentage_interval: 1
+      simulation_duration_s: 1
+      time_expansion_strategy: "stretch"
+
+    executor:
+      num_threads: 30
+
+
+# -- Named benchmark scenarios -------------------------------------------------
+# Each entry selectively overrides fields from `defaults`.
+# Anything not listed here is inherited from `defaults`.
+benchmarks:
+
+  # --------------------------------------------------------------------------
+  # Redis – lightweight local smoke test (2 workers, 8 threads)
+  # --------------------------------------------------------------------------
+  redis_local_light:
+    cluster:
+      workers:
+        - ["localhost", 6767]
+        - ["localhost", 6768]
+      target:
+        type: "redis"
+        host: "localhost"
+        port: 7000
+    components:
+      executor:
+        num_threads: 8
+
+  # --------------------------------------------------------------------------
+  # Redis – local stress test (4 workers, 64 threads)
+  # --------------------------------------------------------------------------
+  redis_local_stress:
+    cluster:
+      workers:
+        - ["localhost", 6767]
+        - ["localhost", 6768]
+        - ["localhost", 6769]
+        - ["localhost", 6770]
+      target:
+        type: "redis"
+        host: "localhost"
+        port: 7000
+    components:
+      executor:
+        num_threads: 64
+
+  # --------------------------------------------------------------------------
+  # Redis – remote cluster (4 workers, 32 threads)
+  # --------------------------------------------------------------------------
+  redis_remote_light:
+    cluster:
+      workers:
+        - ["node1", 6769]
+        - ["node2", 6769]
+        - ["node3", 6769]
+        - ["node4", 6769]
+      target:
+        type: "redis"
+        host: "node5"
+        port: 7000
+    components:
+      executor:
+        num_threads: 32
+
+  # --------------------------------------------------------------------------
+  # Redis – remote cluster (4 workers, 128 threads)
+  # --------------------------------------------------------------------------
+  redis_remote_stress:
+    cluster:
+      workers:
+        - ["node1", 6769]
+        - ["node2", 6769]
+        - ["node3", 6769]
+        - ["node4", 6769]
+      target:
+        type: "redis"
+        host: "node5"
+        port: 7000
+    components:
+      executor:
+        num_threads: 128
+
+  # --------------------------------------------------------------------------
+  # V2I – local light (4 workers, 16 threads)
+  # --------------------------------------------------------------------------
+  v2i_local_light:
+    cluster:
+      workers:
+        - ["localhost", 6767]
+        - ["localhost", 6768]
+        - ["localhost", 6769]
+        - ["localhost", 6770]
+      target:
+        type: "v2i"
+        host: "localhost"
+        port: 8000
+    pipeline:
+      generator_log_file: "logs/output/v2i/synthetic_trace.log"
+    components:
+      executor:
+        num_threads: 16
+
+  # --------------------------------------------------------------------------
+  # V2I – stress (4 workers, 64 threads)
+  # --------------------------------------------------------------------------
+  v2i_local_stress:
+    cluster:
+      workers:
+        - ["localhost", 6767]
+        - ["localhost", 6768]
+        - ["localhost", 6769]
+        - ["localhost", 6770]
+      target:
+        type: "v2i"
+        host: "localhost"
+        port: 8000
+    pipeline:
+      generator_log_file: "logs/output/v2i/synthetic_trace.log"
+    components:
+      executor:
+        num_threads: 64
+
+  # --------------------------------------------------------------------------
+  # HTTP – local smoke test (2 workers, 16 threads)
+  # --------------------------------------------------------------------------
+  http_local_light:
+    cluster:
+      workers:
+        - ["localhost", 6767]
+        - ["localhost", 6768]
+      target:
+        type: "http"
+        host: "localhost"
+        port: 8080
+    pipeline:
+      generator_log_file: "logs/output/http/synthetic_trace.log"
+    components:
+      executor:
+        num_threads: 16
+
+  # --------------------------------------------------------------------------
+  # HTTP – remote stress (6 workers, 256 threads)
+  # --------------------------------------------------------------------------
+  http_remote_stress:
+    cluster:
+      workers:
+        - ["10.0.0.1", 6767]
+        - ["10.0.0.2", 6767]
+        - ["10.0.0.3", 6767]
+        - ["10.0.0.4", 6767]
+        - ["10.0.0.5", 6767]
+        - ["10.0.0.6", 6767]
+      target:
+        type: "http"
+        host: "10.0.0.100"
+        port: 80
+    pipeline:
+      generator_log_file: "logs/output/http/synthetic_trace.log"
+    components:
+      executor:
+        num_threads: 256

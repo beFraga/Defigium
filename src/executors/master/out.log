@@ -1,0 +1,37 @@
+[Config] Resolving benchmark: 'redis_local_light'
+[Main] Running 2 benchmark(s) sequentially.
+
+[Main] ── Benchmark 1/2: 'redis_local_light' ──
+[Config] Resolving benchmark: 'redis_local_light'
+[Master] Initializing orchestration sequence..
+[Master] Connecting to Daemons...
+[Master] T0: 0
+[Master] Daemon localhost:6767 failed.
+[Master] Daemon localhost:6768 failed.
+[Master] Critical Error: Failed to successfully wake workers on any daemons!
+
+[Main] ── Benchmark 2/2: 'redis_local_stress' ──
+[Config] Resolving benchmark: 'redis_local_stress'
+[Master] Initializing orchestration sequence..
+[Master] Connecting to Daemons...
+[Master] T0: 0
+[Master] Daemon localhost:6767 failed.
+[Master] Daemon localhost:6768 failed.
+[Master] Daemon localhost:6770 failed.
+[Master] Daemon localhost:6769 ready.
+[Master] Initializing handshake with workers...
+[Master] 1
+[Master] Worker localhost:38259 is ready.
+[Master] Parsing tasks and distributing to active workers...
+[Master] Distributed 2003 tasks.
+[Master] Waiting for all workers to reach synchronization barrier...
+[Master] Worker localhost:38259 reached barrier.
+[Master] All workers synchronized. Broadcasting RELEASE_BARRIER...
+[Master] Waiting for all workers to finish execution...
+[Master] Worker localhost:38259 finished execution.
+[Master] All workers have reported completion.
+[Master] Sending KILL to all daemons...
+[Master] KILL sent to daemon localhost:6769.
+[Master] Termination protocol complete. Daemons remain active for future rounds.
+
+[Main] All benchmarks completed.

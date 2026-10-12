@@ -1,5 +1,8 @@
 __pycache__
+venv
+.venv
 .vscode
 logs/*
 !logs/.gitkeep
 ycsb_results
+notes/
